@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6
 ARG OS_BASE_IMAGE=alpine:3.24
 ARG MAJOR_VERSION=7.4
-ARG ZBX_VERSION=${MAJOR_VERSION}.14
+ARG ZBX_VERSION=${MAJOR_VERSION}.15
 ARG BUILD_BASE_IMAGE=zabbix-build-mysql:alpine-${ZBX_VERSION}
 
 FROM ${BUILD_BASE_IMAGE} AS builder
@@ -27,11 +27,12 @@ ENV DB_ENGINE=mariadb \
     ZBX_DB_NAME=dummy_db_name \
     ZBX_FPINGLOCATION=/usr/sbin/fping \
     ZBX_LOADMODULEPATH=${ZABBIX_USER_HOME_DIR}/modules \
+    ZBX_EXPORTDIR=${ZABBIX_USER_HOME_DIR}/export/ \
     ZBX_SNMPTRAPPERFILE=${ZABBIX_USER_HOME_DIR}/snmptraps/snmptraps.log \
     ZBX_SSHKEYLOCATION=${ZABBIX_USER_HOME_DIR}/ssh_keys/ \
     ZBX_SSLCERTLOCATION=${ZABBIX_USER_HOME_DIR}/ssl/certs/ \
     ZBX_SSLKEYLOCATION=${ZABBIX_USER_HOME_DIR}/ssl/keys/ \
-    ZBX_SSLCALOCATION=${ZABBIX_USER_HOME_DIR}/ssl/ssl_ca/
+    ZBX_SSLCALOCATION=${ZABBIX_USER_HOME_DIR}/ssl/ssl_ca_internal/
 
 LABEL org.opencontainers.image.authors="Alexey Pustovalov <alexey.pustovalov@zabbix.com>" \
       org.opencontainers.image.description="Zabbix server with MySQL database support" \
@@ -55,7 +56,9 @@ COPY --from=builder /tmp/zabbix-${ZBX_VERSION}-output/server/database/mysql/crea
 
 RUN set -eux && \
     INSTALL_PKGS="bash \
+            curl \
             gzip \
+            jq \
             tzdata \
             c-ares \
             krb5 \
@@ -113,6 +116,7 @@ RUN set -eux && \
         ${ZABBIX_USER_HOME_DIR}/ssl/certs \
         ${ZABBIX_USER_HOME_DIR}/ssl/keys \
         ${ZABBIX_USER_HOME_DIR}/ssl/ssl_ca \
+        ${ZABBIX_USER_HOME_DIR}/ssl/ssl_ca_internal \
         /usr/lib/zabbix/alertscripts \
         /usr/lib/zabbix/externalscripts \
         /usr/share/doc/zabbix-server-mysql && \
